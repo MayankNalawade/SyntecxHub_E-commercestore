@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SyntecxShop – E-Commerce Store</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f4f0ff;--surface:#fff;--text:#1d1033;--muted:#6b5f85;--primary:#5b3fd6;--primary-t:#fff;--border:#ddd5f5;--danger:#c0392b;--ok:#1e8449}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#150f26;--surface:#201738;--text:#efeaff;--muted:#a99ccb;--primary:#8b6cff;--primary-t:#12091f;--border:#3a2d5e;--danger:#ff7b6b;--ok:#58d68d}}
+:root[data-theme="dark"]{--bg:#150f26;--surface:#201738;--text:#efeaff;--muted:#a99ccb;--primary:#8b6cff;--primary-t:#12091f;--border:#3a2d5e;--danger:#ff7b6b;--ok:#58d68d}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 16px}
+header b{font-size:1.2rem;color:var(--primary);margin-right:auto;cursor:pointer}
+nav a,button,.chip{font:inherit;cursor:pointer}
+nav a{color:var(--text);text-decoration:none;padding:6px 10px;border-radius:8px}
+nav a:hover,nav a.on{background:var(--bg);color:var(--primary)}
+main{max-width:1000px;margin:0 auto;padding:16px}
+h2{margin:8px 0 14px}
+.btn{background:var(--primary);color:var(--primary-t);border:0;border-radius:8px;padding:8px 14px;font-weight:600}
+.btn.ghost{background:transparent;color:var(--primary);border:1px solid var(--border)}
+.btn.sm{padding:4px 10px;font-size:.85rem}.btn.del{background:var(--danger);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+input,select{font:inherit;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;max-width:100%}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}.bar input{flex:1;min-width:160px}
+.chip{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:99px;padding:4px 12px}
+.chip.on{background:var(--primary);color:var(--primary-t);border-color:var(--primary)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.card .img{font-size:3.4rem;text-align:center;background:var(--bg);border-radius:10px;padding:10px}
+.price{font-weight:700;color:var(--primary)}.muted{color:var(--muted);font-size:.85rem}
+.box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
+.row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}.row:last-child{border:0}
+.row .grow{flex:1}
+.form{display:flex;flex-wrap:wrap;gap:8px}.form input,.form select{flex:1;min-width:120px}
+.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px}.stat b{font-size:1.5rem;display:block}
+.tok{word-break:break-all;font-family:ui-monospace,monospace;font-size:.75rem;color:var(--muted)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 16px;border-radius:99px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+#toast.show{opacity:1}
+.auth{max-width:380px;margin:20px auto}.auth .form input{flex:1 1 100%}
+</style>
+</head>
+<body>
+<header><b onclick="go('shop')">🛍️ SyntecxShop</b><nav id="nav"></nav></header>
+<main id="app"></main>
+<div id="toast"></div>
+<script>
+const SECRET='syntecx-demo-secret',KEY='sx_shop_v1',TOK='sx_token_v1';
+const seed={users:[{id:1,name:'Admin',email:'admin@shop.com',pw:'admin123',role:'admin'}],
+products:[['Wireless Headphones',79,15,'Audio','🎧'],['Smart Watch',129,8,'Wearables','⌚'],['Mechanical Keyboard',89,20,'Accessories','⌨️'],['Gaming Mouse',45,25,'Accessories','🖱️'],['Bluetooth Speaker',59,12,'Audio','🔊'],['4K Webcam',69,10,'Accessories','📷'],['Laptop Backpack',49,30,'Bags','🎒'],['Fitness Band',35,18,'Wearables','📿']].map((p,i)=>({id:i+1,name:p[0],price:p[1],stock:p[2],cat:p[3],emoji:p[4]})),orders:[]};
+let db,cart=[],token=null,filter='All',q='';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function load(){try{db=JSON.parse(localStorage.getItem(KEY))}catch(e){}if(!db||!db.products)db=JSON.parse(JSON.stringify(seed));
+try{cart=JSON.parse(localStorage.getItem(KEY+'c'))||[]}catch(e){cart=[]}try{token=localStorage.getItem(TOK)}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(KEY+'c',JSON.stringify(cart));token?localStorage.setItem(TOK,token):localStorage.removeItem(TOK)}catch(e){}}
+// ---- JWT (demo: signed client-side; in production sign on the server with HS256/RS256) ----
+const b64=o=>btoa(JSON.stringify(o)).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+const unb64=s=>JSON.parse(atob(s.replace(/-/g,'+').replace(/_/g,'/')));
+const sig=s=>{let h=5381;for(const c of s+SECRET)h=((h*33)^c.charCodeAt(0))>>>0;return h.toString(36)};
+function sign(u){const h=b64({alg:'HS256',typ:'JWT'}),p=b64({sub:u.id,name:u.name,role:u.role,exp:Date.now()+36e5});return h+'.'+p+'.'+sig(h+'.'+p)}
+function me(){if(!token)return null;try{const[h,p,s]=token.split('.');if(sig(h+'.'+p)!==s)return null;const d=unb64(p);return d.exp>Date.now()?d:null}catch(e){return null}}
+// ---- helpers ----
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.className='show';setTimeout(()=>t.className='',1800)}
+function go(v){location.hash=v}
+const money=n=>'$'+Number(n).toFixed(2);
+const cartCount=()=>cart.reduce((a,c)=>a+c.qty,0);
+const cartTotal=()=>cart.reduce((a,c)=>{const p=db.products.find(x=>x.id===c.id);return a+(p?p.price*c.qty:0)},0);
+// ---- actions ----
+function add(id){const p=db.products.find(x=>x.id===id),c=cart.find(x=>x.id===id);if((c?c.qty:0)>=p.stock)return toast('No more stock');c?c.qty++:cart.push({id,qty:1});save();toast('Added to cart');render()}
+function qty(id,d){const c=cart.find(x=>x.id===id),p=db.products.find(x=>x.id===id);c.qty+=d;if(c.qty>p.stock)c.qty=p.stock;if(c.qty<=0)cart=cart.filter(x=>x!==c);save();render()}
+function auth(mode){const f=k=>document.getElementById(k).value.trim();const email=f('em').toLowerCase(),pw=f('pw');
+if(mode==='register'){const name=f('nm');if(!name||!email||pw.length<6)return toast('Name, email, 6+ char password');
+if(db.users.some(u=>u.email===email))return toast('Email already registered');
+const u={id:Date.now(),name,email,pw,role:'customer'};db.users.push(u);token=sign(u)}
+else{const u=db.users.find(u=>u.email===email&&u.pw===pw);if(!u)return toast('Invalid credentials');token=sign(u)}
+save();toast('Signed in');go(me().role==='admin'?'admin':'shop')}
+function logout(){token=null;save();go('shop')}
+function checkout(){const u=me();if(!u)return go('login');const n=document.getElementById('sn').value.trim(),a=document.getElementById('sa').value.trim();
+if(!n||!a)return toast('Enter name and address');
+const items=cart.map(c=>{const p=db.products.find(x=>x.id===c.id);return{id:p.id,name:p.name,price:p.price,qty:c.qty}});
+items.forEach(i=>{db.products.find(x=>x.id===i.id).stock-=i.qty});
+db.orders.unshift({id:Date.now().toString().slice(-6),uid:u.sub,user:u.name,ship:n+', '+a,items,total:cartTotal(),status:'Pending',date:new Date().toLocaleDateString()});
+cart=[];save();toast('Order placed!');go('orders')}
+function saveProduct(){if(me()?.role!=='admin')return;const g=k=>document.getElementById(k).value.trim();
+if(!g('pn')||!g('pp'))return toast('Name and price required');
+db.products.push({id:Date.now(),name:g('pn'),price:+g('pp'),stock:+g('ps')||0,cat:g('pc')||'General',emoji:g('pe')||'📦'});save();toast('Product added');render()}
+function delProduct(id){if(me()?.role!=='admin')return;db.products=db.products.filter(p=>p.id!==id);cart=cart.filter(c=>c.id!==id);save();render()}
+function editStock(id){const p=db.products.find(x=>x.id===id),v=prompt('New stock for '+p.name,p.stock);if(v!==null&&!isNaN(v)){p.stock=+v;save();render()}}
+function setStatus(id,s){if(me()?.role!=='admin')return;db.orders.find(o=>o.id===id).status=s;save();toast('Status updated')}
+function setFilter(c){filter=c;render()}function setQ(v){q=v;render();const i=document.getElementById('q');i.focus();i.setSelectionRange(v.length,v.length)}
+// ---- views ----
+function vShop(){const cats=['All',...new Set(db.products.map(p=>p.cat))];
+const list=db.products.filter(p=>(filter==='All'||p.cat===filter)&&p.name.toLowerCase().includes(q.toLowerCase()));
+return `<h2>Products</h2><div class="bar"><input id="q" placeholder="Search products…" value="${esc(q)}" oninput="setQ(this.value)"></div>
+<div class="bar">${cats.map(c=>`<button class="chip ${c===filter?'on':''}" onclick="setFilter('${esc(c)}')">${esc(c)}</button>`).join('')}</div>
+<div class="grid">${list.map(p=>`<div class="card"><div class="img">${esc(p.emoji)}</div><b>${esc(p.name)}</b><span class="muted">${esc(p.cat)} · ${p.stock>0?p.stock+' in stock':'Out of stock'}</span>
+<span class="price">${money(p.price)}</span><button class="btn" ${p.stock<1?'disabled':''} onclick="add(${p.id})">Add to cart</button></div>`).join('')||'<p class="muted">No products found.</p>'}</div>`}
+function vCart(){if(!cart.length)return `<h2>Cart</h2><p class="muted">Your cart is empty.</p><button class="btn" onclick="go('shop')">Browse products</button>`;
+return `<h2>Cart</h2><div class="box">${cart.map(c=>{const p=db.products.find(x=>x.id===c.id);return `<div class="row"><span style="font-size:1.8rem">${esc(p.emoji)}</span><div class="grow"><b>${esc(p.name)}</b><div class="muted">${money(p.price)} each</div></div>
+<button class="btn ghost sm" onclick="qty(${p.id},-1)">−</button><b>${c.qty}</b><button class="btn ghost sm" onclick="qty(${p.id},1)">+</button><b style="min-width:70px;text-align:right">${money(p.price*c.qty)}</b></div>`}).join('')}
+<div class="row"><div class="grow"><b>Total</b></div><b class="price">${money(cartTotal())}</b></div></div>
+<div class="box"><h3 style="margin-top:0">Checkout</h3><div class="form"><input id="sn" placeholder="Full name" value="${esc(me()?.name||'')}"><input id="sa" placeholder="Shipping address">
+<button class="btn" onclick="checkout()">${me()?'Place order (demo payment)':'Sign in to checkout'}</button></div></div>`}
+function vOrders(){const u=me();if(!u)return vLogin();const mine=db.orders.filter(o=>o.uid===u.sub);
+return `<h2>My orders</h2>${mine.map(o=>`<div class="box"><b>#${o.id}</b> · ${o.date} · <b>${esc(o.status)}</b><div class="muted">${o.items.map(i=>esc(i.name)+' ×'+i.qty).join(', ')}</div><div class="price">${money(o.total)}</div></div>`).join('')||'<p class="muted">No orders yet.</p>'}
+<div class="box"><b>Your JWT</b><div class="muted">Expires in 1 hour. Role: ${esc(u.role)}</div><div class="tok">${esc(token)}</div></div>`}
+function vLogin(){return `<div class="box auth"><h2 style="margin-top:0">Sign in</h2><div class="form"><input id="nm" placeholder="Name (register only)"><input id="em" placeholder="Email" type="email"><input id="pw" placeholder="Password" type="password">
+<button class="btn" onclick="auth('login')">Log in</button><button class="btn ghost" onclick="auth('register')">Register</button></div>
+<p class="muted">Demo admin: admin@shop.com / admin123</p></div>`}
+function vAdmin(){const u=me();if(!u)return vLogin();if(u.role!=='admin')return `<h2>403</h2><p class="muted">Admins only.</p>`;
+const rev=db.orders.reduce((a,o)=>a+o.total,0);
+return `<h2>Admin dashboard</h2><div class="stats"><div class="stat"><b>${db.products.length}</b>Products</div><div class="stat"><b>${db.orders.length}</b>Orders</div><div class="stat"><b>${money(rev)}</b>Revenue</div><div class="stat"><b>${db.products.filter(p=>p.stock<5).length}</b>Low stock</div></div>
+<div class="box"><h3 style="margin-top:0">Add product</h3><div class="form"><input id="pn" placeholder="Name"><input id="pp" type="number" placeholder="Price"><input id="ps" type="number" placeholder="Stock"><input id="pc" placeholder="Category"><input id="pe" placeholder="Emoji"><button class="btn" onclick="saveProduct()">Add</button></div></div>
+<div class="box scroll"><h3 style="margin-top:0">Products</h3><table><tr><th></th><th>Name</th><th>Price</th><th>Stock</th><th></th></tr>${db.products.map(p=>`<tr><td>${esc(p.emoji)}</td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.stock}</td><td><button class="btn ghost sm" onclick="editStock(${p.id})">Stock</button> <button class="btn del sm" onclick="delProduct(${p.id})">Delete</button></td></tr>`).join('')}</table></div>
+<div class="box scroll"><h3 style="margin-top:0">Orders</h3><table><tr><th>#</th><th>Customer</th><th>Total</th><th>Status</th></tr>${db.orders.map(o=>`<tr><td>${o.id}</td><td>${esc(o.user)}</td><td>${money(o.total)}</td><td><select onchange="setStatus('${o.id}',this.value)">${['Pending','Shipped','Delivered','Cancelled'].map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></td></tr>`).join('')||'<tr><td colspan="4" class="muted">No orders yet.</td></tr>'}</table></div>`}
+function render(){const v=(location.hash||'#shop').slice(1),u=me();if(token&&!u){token=null;save()}
+document.getElementById('nav').innerHTML=[['shop','Shop'],['cart','Cart ('+cartCount()+')'],...(u?[['orders','Orders']]:[]),...(u&&u.role==='admin'?[['admin','Admin']]:[])].map(([k,l])=>`<a href="#${k}" class="${k===v?'on':''}">${l}</a>`).join('')+(u?`<a href="#" onclick="logout();return false">Logout (${esc(u.name)})</a>`:'<a href="#login" class="'+(v==='login'?'on':'')+'">Login</a>');
+const views={shop:vShop,cart:vCart,orders:vOrders,login:vLogin,admin:vAdmin};document.getElementById('app').innerHTML=(views[v]||vShop)()}
+window.addEventListener('hashchange',render);load();render();
+</script>
+</body>
+</html>
